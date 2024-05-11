@@ -17,9 +17,10 @@ public:
                 cards.push_back(i);
 
         // const auto n = cards.size();
-        // const auto k = cards.size();
+        // const auto k = 5;
         std::vector<std::vector<CardValue_52_t>> combinations;
         std::vector<CardValue_52_t> combination;//(0);
+        // combinations.reserve(numberOfCombinations(n, k));
 
         calculate(5, cards, combinations, combination);
 
@@ -27,6 +28,15 @@ public:
     }
 
 private:
+    static uint64_t numberOfCombinations(const unsigned n, const unsigned k) {
+        auto factorial = [](unsigned begin, unsigned end) {
+            uint64_t f = begin;
+            for (auto i = begin + 1; i <= end; ++i)
+                f *= i;
+            return f;
+        };
+        return factorial(n-k, n) / factorial(1, k);
+    }
     static void calculate(const unsigned k, const std::vector<CardValue_52_t>& cards, std::vector<std::vector<CardValue_52_t>>& combinations, 
                           std::vector<CardValue_52_t>& combination, unsigned index = 0)
     {
@@ -47,25 +57,20 @@ private:
 // public:
 //     Predictor() = default;
 
-//     void predict(std::unordered_set<CardValue_52_t>& cards, std::vector<std::unique_ptr<Hand>>& hands, 
-//                  std::unordered_set<CardValue_52_t>& tested) {
-//         if (cards.size() == 7) {
-//             Analyzer analyzer{};
-//             hands.push_back(analyzer.analyze(cards));
-//             return;
-//         }
+//     void predict(std::vector<std::vector<CardValue_52_t>>& hands) {
 
-//         for (auto newCard = 0; newCard < 51; ++newCard) {
-//             // if (tested.count(newCard) > 0)
-//             //     continue;
-//             if (cards.count(newCard) > 0)
-//                 continue;
-            
-//             tested.insert(newCard);
-//             cards.insert(newCard);
-//             predict(cards, hands, tested);
-//             cards.erase(newCard);
-//         }
+//         std::unordered_set<CardValue_52_t> allHands;
+//         for (auto& hand : hands)
+//             for (auto card : hand)
+//                 allHands.insert(card);
+        
+//         std::vector<CardValue_52_t> cards;
+//         for (auto c = 0; c < 52; ++c)
+//             if (allHands.count(c) == 0)
+//                 cards.push_back(c);
+
+//         // CombinationCalculator::calculate()
+
 //     }
 // };
 
