@@ -126,7 +126,7 @@ private:
     bool isWeaker(const Hand& other) override {
         const auto& other_ = static_cast<const FullHouse&>(other);
         if (m_set == other_.m_set)
-            return m_pair == other_.m_pair;
+            return m_pair < other_.m_pair;
         return m_set < other_.m_set;
     }
 
@@ -158,7 +158,7 @@ public:
 private:
     bool isWeaker(const Hand& other) override {
         const auto& other_ = static_cast<const Flush&>(other);
-        for (int c = 4; c >= 0; --c)
+        for (int c = 0; c < 5; ++c)
             if (m_cards[c] != other_.m_cards[c])
                 return m_cards[c] < other_.m_cards[c];
         return false;
@@ -166,7 +166,7 @@ private:
 
     bool isEquivalent(const Hand& other) override {
         const auto& other_ = static_cast<const Flush&>(other);
-        for (int c = 4; c >= 0; --c)
+        for (int c = 0; c < 5; ++c)
             if (m_cards[c] != other_.m_cards[c])
                 return false;
         return true;
@@ -264,14 +264,14 @@ private:
         if (m_pairs.size() < otherpair.m_pairs.size())
             return true;
         
-        for (auto it = m_pairs.rbegin(), it2 = otherpair.m_pairs.rbegin(); it != m_pairs.rend();) {
-            if (*it != *it2)
-                return *it < *it2;
+        for (auto i = 0; i < m_pairs.size(); ++i) {
+            if (m_pairs[i] != otherpair.m_pairs[i])
+                return m_pairs[i] < otherpair.m_pairs[i];
         }
 
-        for (auto it = m_kickers.rbegin(), it2 = otherpair.m_kickers.rbegin(); it != m_kickers.rend();) {
-            if (*it != *it2)
-                return *it < *it2;
+        for (auto i = 0; i < m_kickers.size(); ++i) {
+            if (m_kickers[i] != otherpair.m_kickers[i])
+                return m_kickers[i] < otherpair.m_kickers[i];
         }
 
         return false;
@@ -304,7 +304,7 @@ private:
 
 class HighCard : public Hand {
 public:
-    HighCard(std::vector<CardValue_13_t> values) 
+    HighCard(const std::vector<CardValue_13_t>& values) 
         : Hand{Rank::HighCard}, m_values{values}
     {}
 

@@ -4,30 +4,23 @@
 #include <vector>
 #include <memory>
 
+#include "analyzer.h"
 #include "card.h"
 #include "hand.h"
 
-class FastAnalyzer {
+class FastAnalyzer : public IAnalyzer {
 public:
+    using Deck_t = uint64_t;
+    using Suit_t = uint16_t;
+
     FastAnalyzer() = default;
 
-    std::unique_ptr<Hand> analyzeChar(const std::vector<std::string>& cards) {
-        std::vector<CardValue_52_t> v;
-        for (auto card : cards)
-            v.push_back(Card::fromString(card));
-        return analyze(v);
-    }
-
-    std::unique_ptr<Hand> analyze(const std::vector<CardValue_52_t>& cards) {
+    std::unique_ptr<Hand> analyze(const std::vector<CardValue_52_t>& cards) override {
         Deck_t deck = 0;
         for (auto card : cards)
             deck |= (Deck_t{1} << card);
         return analyze(deck);
     }
-
-private:
-    using Deck_t = uint64_t;
-    using Suit_t = uint16_t;
 
     std::unique_ptr<Hand> analyze(Deck_t deck) {
         auto suits = splitSuits(deck);
@@ -35,16 +28,32 @@ private:
         return checkAll(suits, merged);       
     }
 
+    uint64_t toDeck(const std::vector<std::string>& cards) {
+        uint64_t d = 0;
+        for (auto card : cards)
+            d |= (uint64_t{1} << Card::fromString(card));
+        return d;
+    }
+
+    std::vector<std::string> fromDeck(uint64_t deck) {
+        std::vector<std::string> cards;
+        for (auto c = 0; c < 52; ++c)
+            if (deck & (uint64_t{1} << c))
+                cards.push_back(Card::toString(c));
+        return cards;
+    }
+
+private:
     std::array<Suit_t, 4> splitSuits(Deck_t deck) {
         std::array<Suit_t, 4> suits{};
         for (auto s = 0; s < 4; ++s) {
-            suits[s] = (deck >> 13*s) & 0x1fff;
+            suits[s] = ((deck >> 13*s) & 0x1fff);
         }
         return suits;
     }
 
     Suit_t mergeSuits(const std::array<Suit_t, 4>& suits) {
-        Suit_t merged;
+        Suit_t merged = 0;
         for (auto suit : suits) {
             merged |= suit;
         }
@@ -75,10 +84,10 @@ private:
                         straightflush = std::max(straightflush, c + 4);
                 }
 
-                if ((Suit_t{1} << c) & suit) 
+                if ((Suit_t{1} << c) & suit) // merge this with later block
                     count += 1;
 
-                if (count >= 5)
+                if (count >= 5)     // move this outside
                     flushsuit = s;
 
                 auto mask = (Suit_t{1} << c);
@@ -125,10 +134,10 @@ private:
             }
             return std::make_unique<FullHouse>(set, pair);
         } else if (flushsuit >= 0) {
-            std::vector<uint8_t> cards;
+            std::vector<CardValue_13_t> cards;
             auto suit = suits[flushsuit];
             for (int i = 12; i >= 0; --i) {
-                auto mask = (1 << i);
+                auto mask = (Suit_t{1} << i);
                 if (suit & mask) {
                     cards.push_back(i);
                 }

@@ -9,16 +9,23 @@
 // #include <set>
 #include <unordered_set>
 
-class Analyzer {
+class IAnalyzer {
 public:
+    virtual ~IAnalyzer() = default;
+    virtual std::unique_ptr<Hand> analyze(const std::vector<CardValue_52_t>& cards) = 0;
+
     std::unique_ptr<Hand> analyzeChar(const std::vector<std::string>& cards) {
         std::vector<CardValue_52_t> v;
         for (auto card : cards)
             v.push_back(Card::fromString(card));
         return analyze(v);
     }
-    
-    std::unique_ptr<Hand> analyze(const std::vector<CardValue_52_t>& cards) {
+};
+
+class Analyzer : public IAnalyzer {
+public:
+
+    std::unique_ptr<Hand> analyze(const std::vector<CardValue_52_t>& cards) override {
         const auto breakdown = Breakdown(cards);
         return checkHand(breakdown);
     }
@@ -82,93 +89,36 @@ private:
     
     std::unique_ptr<Hand> checkStraightFlush(const Breakdown& breakdown) {
         if (breakdown.hasFlush && breakdown.hasStraight) {
-            // CardValue_13_t topCard = 0;
-            // CardSuit_t flushSuit = 0;
-            
-            // for (auto suit = 0; suit < breakdown.suitCount.size(); ++suit)
-            //     if (breakdown.suitCount[suit] >= 5)
-            //         flushSuit = suit;
 
-            std::unordered_set<CardValue_52_t> cardSet;
+            // std::unordered_set<CardValue_52_t> cardSet;
+            std::vector<bool> cardField(52, false);
             for (auto card : breakdown.cards)
-                cardSet.insert(card);
+                cardField[card] = true;
 
             CardValue_13_t topCard = 0;
 
-            for (auto card : cardSet) {
+            for (auto card : breakdown.cards) {
                 auto value13 = Card::value(card);
 
                 if (value13 <= 8) {
-                    if (cardSet.count(card + 1) > 0)
-                        if (cardSet.count(card + 2) > 0)
-                            if (cardSet.count(card + 3) > 0)
-                                if (cardSet.count(card + 4) > 0)
-                                    topCard = std::max(topCard, (CardValue_52_t)(value13 + 4));
+                    if (cardField[card + 1])
+                        if (cardField[card + 2])
+                            if (cardField[card + 3])
+                                if (cardField[card + 4])
+                                    topCard = std::max(topCard, (CardValue_13_t)(value13 + 4));
                 } else if (value13 == 12) {
-                    if (cardSet.count(card - 12) > 0)
-                        if (cardSet.count(card - 11) > 0)
-                            if (cardSet.count(card - 10) > 0)
-                                if (cardSet.count(card - 9) > 0)
-                                    topCard = std::max(topCard, value13);
+                    if (cardField[card - 12])
+                        if (cardField[card - 11])
+                            if (cardField[card - 10])
+                                if (cardField[card - 9])
+                                    topCard = std::max(topCard, CardValue_13_t{3});
                 }
             }
-
-            // for (auto i = 0; i < breakdown.suitCount.size(); ++i) {
-            //     auto& suit = breakdown.suitCount[i];
-                
-            //     if (suit.size() < 5)
-            //         continue;
-                
-            //     flushSuit = i;
-                
-            //     for (auto card : suit) {
-            //         if (card == 12) {
-            //             if (suit.count(card - 12) &&
-            //                 suit.count(card - 11) && 
-            //                 suit.count(card - 10) &&
-            //                 suit.count(card - 9))
-            //                 topCard = std::max(topCard, (CardValue_13_t)(card - 9));
-            //         } else {
-            //             if (suit.count(card + 1) &&
-            //                 suit.count(card + 2) &&
-            //                 suit.count(card + 3) &&
-            //                 suit.count(card + 4))
-            //                 topCard = std::max(topCard, card);
-            //         }
-            //     }
-            // }
 
             if (topCard > 0)
                 return std::make_unique<StraightFlush>(topCard, breakdown.flushSuit);
         }
-        // for (auto& card : m_cards)
-        // {
-        //     auto value = Card::value(card);
-        //     auto suit = Card::suit(card);
-            
-        //     if (value == 12) {
-        //         if (cards.count(card-12))
-        //             if (cards.count(card-11))
-        //                 if (cards.count(card-10))
-        //                     if (cards.count(card-9))
-        //                         m_straightFlushes.insert(card-9);
-        //     } else if (value < 9) {
-        //         if (cards.count(card + 1) > 0)
-        //             if (cards.count(card + 2) > 0)
-        //                 if (cards.count(card + 3) > 0)
-        //                     if (cards.count(card + 4) > 0) 
-        //                         m_straightFlushes.insert(card + 4);
-        //     }
-        // }
-        
-        // if (straightflushes.empty())
-        //     checkQuads();
-        // else if (Card::value(*m_straightFlushes.rbegin()) == 12)
-        //     result = Result::RoyalFlush;
-        // else
-        //     result = Result::Flush;
 
-        // return checkPairs(breakdown);
         return checkQuads(breakdown);
     }
     
@@ -215,9 +165,9 @@ private:
                     cards.push_back(Card::value(card));
             }
 
-            std::sort(cards.begin(), cards.end());
+            std::sort(cards.begin(), cards.end(), [](auto& a, auto& b){ return a > b; });
             if (cards.size() > 5)
-                cards.erase(cards.begin(), cards.begin() + (cards.size() - 5));
+                cards.erase(cards.end() - 2, cards.end());
 
             return std::make_unique<Flush>(cards, breakdown.flushSuit);
         }

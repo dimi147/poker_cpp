@@ -1,23 +1,45 @@
 
 #include "analyzer.h"
 #include "card.h"
-#include "predictor.h"
-#include "deck.h"
-
 #include "fastanalyzer.h"
+#include "predictor.h"
+// #include "deck.h"
 
 #include <chrono>
 #include <iostream>
 #include <assert.h>
-// #include <unordered_set>
 
-void test() {
-    FastAnalyzer analyzer{};
+void testHandComparison() {
+    assert(StraightFlush(11, 0) < StraightFlush(12, 0));
+    assert(StraightFlush(7, 0) == StraightFlush(7, 1));
+    assert(Quads(12, 11) < StraightFlush(0, 0));
+    assert(Quads(12, 10) < Quads(12, 11));
+    assert(Quads(11, 12) == Quads(11, 12));
+    assert(FullHouse(12, 11) < Quads(0, 1));
+    assert(FullHouse(12, 10) < FullHouse(12, 11));
+    assert(FullHouse(7, 3) == FullHouse(7, 3));
+    assert(Flush({12, 11, 10, 9, 7}, 0) < FullHouse(0, 1));
+    assert(Flush({12, 11, 9, 8, 1}, 0) == Flush({12, 11, 9, 8, 1}, 0));
+    assert(Flush({11, 10, 9, 8, 1}, 0) < Flush({12, 11, 9, 8, 1}, 0));
+    assert(Flush({12, 11, 9, 8, 0}, 0) < Flush({12, 11, 9, 8, 1}, 0));
+    assert(Straight(12) < Flush({0, 1, 2, 3, 5}, 0));
+    assert(Straight(7) < Straight(8));
+    assert(Straight(7) == Straight(7));
+    assert(Set(12, 11, 10) < Straight(3));
+    assert(Set(12, 11, 9) < Set(12, 11, 10));
+    assert(Set(7, 9, 5) == Set(7, 9, 5));
+    assert(Pair({12, 11}, {10}) < Set(0, 1, 2));
+    assert(Pair({7, 5}, {11}) < Pair({7, 5}, {12}));
+    assert(Pair({7, 5}, {12}) == Pair({7, 5}, {12}));
+    assert(Pair({12}, {11, 10, 9}) < Pair({0, 1}, {2}));
+    assert(Pair({12}, {11, 10, 8}) < Pair({12}, {11, 10, 9}));
+    assert(Pair({7}, {10, 9, 8}) == Pair({7}, {10, 9, 8}));
+    assert(HighCard({12, 11, 10, 9, 7}) < Pair({0}, {3, 2, 1}));
+    assert(HighCard({12, 11, 10, 7, 4}) < HighCard({12, 11, 10, 7, 5}));
+    assert(HighCard({7, 5, 4, 2, 1}) == HighCard({7, 5, 4, 2, 1}));
+}
 
-    // auto check = [](auto& a, auto& b) {
-    //     std::cout << (a==b) << std::endl;
-    // };
-
+void testAnalzerWithExampleCombinations(IAnalyzer& analyzer) {
     assert(StraightFlush(5, 0) == *analyzer.analyzeChar({"Ad", "2d", "3d", "4d", "5d", "6d", "7d"}));
     assert(StraightFlush(12, 0) == *analyzer.analyzeChar({"Ad", "Kd", "Qd", "Jd", "Td", "6d", "7d"}));
     assert(Quads(5, 12) == *analyzer.analyzeChar({"Ad", "2d", "3d", "7c", "7h", "7s", "7d"}));
@@ -34,38 +56,21 @@ void test() {
     assert(HighCard({12, 11, 8, 7, 5}) == *analyzer.analyzeChar({"Ad", "2d", "3d", "7c", "Kh", "9h", "Tc"}));
 }
 
+void testAnalyzers() {
+    Analyzer analyzer{};
+    FastAnalyzer fast{};
+    testAnalzerWithExampleCombinations(analyzer);
+    testAnalzerWithExampleCombinations(fast);
+}
+
 int main() {
-    test();
-    FastAnalyzer analyzer{};
+    testHandComparison();
+    testAnalyzers();
 
-    auto b = std::chrono::high_resolution_clock::now();
-    auto combinations = CombinationCalculator::calculate({0, 1});
-    auto e = std::chrono::high_resolution_clock::now();
-
-    std::cout << "combinations take " << std::chrono::duration_cast<std::chrono::milliseconds>(e - b).count() << " ms\n";
-
-    std::cout << combinations.size() << std::endl;
-
-    auto m = std::array<unsigned, 9>{};
-
-    b = std::chrono::high_resolution_clock::now();
-    for (auto combination : combinations) {
-        combination.push_back(0);
-        combination.push_back(1);
-        auto hand = analyzer.analyze(combination);
-
-        m[hand->getRank()] += 1;
-        
-
-        // combination.analyze(combination);
-    }
-    e = std::chrono::high_resolution_clock::now();
-    std::cout << "combination analysis takes " << std::chrono::duration_cast<std::chrono::milliseconds>(e - b).count() << " ms\n";
-
-    auto i=0;
-    for (auto r : m)
-        printf("rank %d: %lf %%\n", i++, 100. * r/combinations.size());
-    // std::cout << (*hand1 > *hand2);
+    FastAnalyzer fast{};
+    Predictor predictor{fast};
+    predictor.predict({{12+13, 12}, {0, 5 + 13}, {11, 11+13}, {10, 10+13}, {4, 5}});
+    predictor.predict({{4, 12}, {2,3}});
 
     return 0;
 }
